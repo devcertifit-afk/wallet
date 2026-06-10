@@ -1,6 +1,6 @@
-# PassFlow - Wallet Pass Management Platform
+# UnisonPass - Wallet Pass Management Platform
 
-PassFlow is a Django-based platform that allows merchants in the European Union to create, manage, and analyze Google Wallet and Apple Wallet passes.
+UnisonPass is a Django-based platform that allows merchants in the European Union to create, manage, and analyze Google Wallet and Apple Wallet passes.
 
 ---
 

@@ -236,7 +236,7 @@ def dashboard_register(request):
                 # Log the user in
                 login(request, user)
                 
-                messages.success(request, f"Welcome to PassFlow, {company_name}! Your account has been created.")
+                messages.success(request, f"Welcome to UnisonPass, {company_name}! Your account has been created.")
                 return redirect('dashboard-index')
         except Exception as e:
             messages.error(request, f"Registration failed: {str(e)}")

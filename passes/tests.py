@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import Company, Employee, PassTemplate, PassInstance, PassAnalytics
 
-class PassFlowModelTests(TestCase):
+class UnisonPassModelTests(TestCase):
     def setUp(self):
         self.company = Company.objects.create(name="Test Merchant", slug="test-merchant")
         self.user = User.objects.create_user(username="owner_user", password="testpassword")
@@ -24,7 +24,7 @@ class PassFlowModelTests(TestCase):
         self.assertEqual(self.employee.user.username, "owner_user")
         self.assertEqual(self.employee.company, self.company)
 
-class PassFlowAPITests(APITestCase):
+class UnisonPassAPITests(APITestCase):
     def setUp(self):
         self.company = Company.objects.create(name="Cafe Nero", slug="cafe-nero")
         self.user = User.objects.create_user(username="merchant_admin", password="password123")
@@ -331,7 +331,7 @@ class PassFlowAPITests(APITestCase):
         self.assertEqual(obj_payload['origin']['airportIataCode'], "LHR")
         self.assertEqual(obj_payload['destination']['airportIataCode'], "JFK")
 
-class PassFlowDashboardTests(TestCase):
+class UnisonPassDashboardTests(TestCase):
     def setUp(self):
         # Company A Setup
         self.company_a = Company.objects.create(name="Company A", slug="company-a")
