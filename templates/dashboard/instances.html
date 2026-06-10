@@ -1,0 +1,615 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Issued Passes{% endblock %}
+{% block header_title %}Issued Passes{% endblock %}
+{% block extra_css %}
+<style>
+    @keyframes scan {
+        0%, 100% { top: 0%; }
+        50% { top: 100%; }
+    }
+    .animate-scan {
+        animation: scan 2.5s ease-in-out infinite;
+    }
+    #reader video {
+        object-fit: cover !important;
+        border-radius: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h3 class="font-display font-bold text-xl text-slate-800">Customer Passes</h3>
+        <p class="text-xs text-slate-400">Issue and update individual wallet passes</p>
+    </div>
+    <div class="flex space-x-3">
+        <button onclick="startScanner()" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md transition-colors flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-16v4m0 4h.01M4 12h2m10 0h.01M4 8h16M4 16h16" />
+            </svg>
+            <span>Scan QR Code</span>
+        </button>
+        <button onclick="toggleModal('issue-modal')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md transition-colors">
+            + Issue Wallet Pass
+        </button>
+    </div>
+</div>
+
+<!-- Table Container -->
+<div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs text-slate-600">
+            <thead>
+                <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <th class="px-6 py-4">Customer</th>
+                    <th class="px-6 py-4">Card Type</th>
+                    <th class="px-6 py-4">Balance</th>
+                    <th class="px-6 py-4">Issued On</th>
+                    <th class="px-6 py-4 text-center">Add Pass</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-medium">
+                {% for inst in instances %}
+                <tr class="hover:bg-slate-50/50">
+                    <!-- Customer Details -->
+                    <td class="px-6 py-4">
+                        <span class="font-bold text-slate-800 text-sm block">{{ inst.customer_name }}</span>
+                        <span class="text-[10px] text-slate-400 block mt-0.5 mb-1.5">{{ inst.customer_email }}</span>
+                        <!-- Dynamic details -->
+                        {% if inst.template.pass_type == 'EVENT_TICKET' %}
+                            <div class="space-y-0.5 text-[10px] text-indigo-600 font-bold bg-indigo-50/50 border border-indigo-100/50 px-2.5 py-1 rounded-lg inline-block font-mono">
+                                <span class="block">🎫 {{ inst.pass_data.event_name|default:inst.template.title }}</span>
+                                <span class="block text-[9px] text-slate-400 font-medium">Venue: {{ inst.pass_data.venue }} | Seat: {{ inst.pass_data.seat }}</span>
+                                <span class="block text-[9px] text-slate-400 font-medium">Date: {{ inst.pass_data.event_date }}</span>
+                            </div>
+                        {% elif inst.template.pass_type == 'BOARDING_PASS' %}
+                            <div class="space-y-0.5 text-[10px] text-indigo-600 font-bold bg-indigo-50/50 border border-indigo-100/50 px-2.5 py-1 rounded-lg inline-block font-mono">
+                                <span class="block">✈️ Flight: {{ inst.pass_data.flight_number }}</span>
+                                <span class="block text-[9px] text-slate-400 font-medium">Route: {{ inst.pass_data.origin }} ➔ {{ inst.pass_data.destination }}</span>
+                                <span class="block text-[9px] text-slate-400 font-medium">Departs: {{ inst.pass_data.departure_time }} | Seat: {{ inst.pass_data.seat }}</span>
+                            </div>
+                        {% elif inst.template.pass_type == 'COUPON' %}
+                            <div class="space-y-0.5 text-[10px] text-rose-600 font-bold bg-rose-50/50 border border-rose-100/50 px-2.5 py-1 rounded-lg inline-block font-mono">
+                                <span class="block">🏷️ Offer: {{ inst.pass_data.discount_value|default:"Promo" }}</span>
+                                <span class="block text-[9px] text-slate-400 font-medium">Code: {{ inst.pass_data.coupon_code }} | Expires: {{ inst.pass_data.expires_at }}</span>
+                            </div>
+                        {% elif inst.template.pass_type == 'MEMBERSHIP' %}
+                            <div class="space-y-0.5 text-[10px] text-emerald-600 font-bold bg-emerald-50/50 border border-emerald-100/50 px-2.5 py-1 rounded-lg inline-block font-mono">
+                                <span class="block">👑 Tier: {{ inst.pass_data.membership_tier }}</span>
+                                <span class="block text-[9px] text-slate-400 font-medium">ID: {{ inst.pass_data.membership_id }} | Expires: {{ inst.pass_data.expires_at }}</span>
+                            </div>
+                        {% elif inst.template.pass_type == 'GENERIC' %}
+                            {% if inst.pass_data.custom_label_1 %}
+                            <div class="space-y-0.5 text-[10px] text-slate-600 font-bold bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg inline-block font-mono">
+                                <span class="block">ℹ️ {{ inst.pass_data.custom_label_1 }}: {{ inst.pass_data.custom_value_1 }}</span>
+                                {% if inst.pass_data.custom_label_2 %}
+                                <span class="block text-[9px] text-slate-400 font-medium">{{ inst.pass_data.custom_label_2 }}: {{ inst.pass_data.custom_value_2 }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <!-- Card Type Design -->
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase inline-block shadow-sm" style="background-color: {{ inst.template.background_color }};">
+                            {{ inst.template.title }}
+                        </span>
+                        <span class="text-[9px] text-slate-400 block mt-1 uppercase font-semibold">
+                            {{ inst.template.get_pass_type_display }}
+                        </span>
+                    </td>
+                    <!-- Balance -->
+                    <td class="px-6 py-4 font-mono font-bold text-slate-900 text-sm">
+                        {% if inst.template.pass_type == 'LOYALTY' %}
+                            {{ inst.balance|floatformat:0 }}
+                            <span class="text-[10px] font-sans font-medium text-slate-400">pts</span>
+                        {% elif inst.template.pass_type == 'GIFT_CARD' %}
+                            {{ inst.balance }}
+                            <span class="text-[10px] font-sans font-medium text-slate-400">EUR</span>
+                        {% else %}
+                            <span class="text-[10px] font-sans font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded uppercase">Active</span>
+                        {% endif %}
+                    </td>
+                    <!-- Date -->
+                    <td class="px-6 py-4 text-slate-400 font-semibold">
+                        {{ inst.created_at|date:"M d, Y" }}
+                    </td>
+                    <!-- Add Pass Actions -->
+                    <td class="px-6 py-4 text-center space-x-2">
+                        <!-- Apple download link -->
+                        <a href="/api/v1/instances/{{ inst.serial_number }}/apple/" class="inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg shadow-sm transition-transform hover:-translate-y-0.5">
+                             Apple
+                        </a>
+                        <!-- Google download link (triggers REST URL query) -->
+                        <button onclick="fetchGoogleUrl('{{ inst.serial_number }}')" class="inline-flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px] px-3 py-1.5 rounded-lg transition-transform hover:-translate-y-0.5">
+                            🤖 Google
+                        </button>
+                    </td>
+                    <!-- Actions (Redeem / Add Points) -->
+                    <td class="px-6 py-4 text-right space-x-2">
+                        {% if inst.template.pass_type == 'LOYALTY' or inst.template.pass_type == 'GIFT_CARD' %}
+                            <button onclick="openBalanceModal('{{ inst.serial_number }}', 'ADD', '{{ inst.customer_name }}', '{{ inst.template.pass_type }}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] px-2.5 py-1.5 rounded-lg transition-colors">
+                                + Add Balance
+                            </button>
+                            <button onclick="openBalanceModal('{{ inst.serial_number }}', 'REDEEM', '{{ inst.customer_name }}', '{{ inst.template.pass_type }}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[10px] px-2.5 py-1.5 rounded-lg transition-colors">
+                                Redeem
+                            </button>
+                        {% elif inst.template.pass_type == 'EVENT_TICKET' %}
+                            <button onclick="alert('Ticket Verified! Welcome to the Event.')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px] px-3 py-1.5 rounded-lg transition-colors">
+                                🎟️ Check-in
+                            </button>
+                        {% elif inst.template.pass_type == 'COUPON' %}
+                            <button onclick="alert('Coupon checked and marked as redeemed.')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[10px] px-3 py-1.5 rounded-lg transition-colors">
+                                🏷️ Use Coupon
+                            </button>
+                        {% else %}
+                            <button onclick="alert('Card status verified: Active')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] px-3 py-1.5 rounded-lg transition-colors">
+                                Verify Status
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center">
+                        <span class="text-3xl block mb-2">🎟️</span>
+                        <h4 class="font-display font-bold text-slate-800 text-sm">No wallet passes issued</h4>
+                        <p class="text-xs text-slate-400 mt-1">Issue templates to your first clients to generate wallet passes.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Issue New Pass -->
+<div id="issue-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+    <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl border border-slate-100 flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+            <h4 class="font-display font-bold text-lg text-slate-900">Issue Wallet Pass</h4>
+            <button onclick="toggleModal('issue-modal')" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form method="POST" class="space-y-4 text-xs font-semibold text-slate-500">
+            {% csrf_token %}
+            <div>
+                <label for="template_id" class="block uppercase tracking-wider mb-1.5">Card Template Design</label>
+                <select id="template_id" name="template_id" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    {% for temp in templates %}
+                    <option value="{{ temp.id }}" data-pass-type="{{ temp.pass_type }}">{{ temp.title }} ({{ temp.get_pass_type_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="customer_name" class="block uppercase tracking-wider mb-1.5">Customer Full Name</label>
+                <input type="text" id="customer_name" name="customer_name" placeholder="John Doe" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium" required>
+            </div>
+
+            <div>
+                <label for="customer_email" class="block uppercase tracking-wider mb-1.5">Customer Email Address</label>
+                <input type="email" id="customer_email" name="customer_email" placeholder="john@example.com" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium" required>
+            </div>
+
+            <!-- Balance Input Container (For Loyalty & Gift Cards) -->
+            <div id="inst-field-balance" class="inst-fields">
+                <label for="initial_balance" class="block uppercase tracking-wider mb-1.5">Initial Points / Balance</label>
+                <input type="number" id="initial_balance" name="initial_balance" value="0" min="0" step="any" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+            </div>
+
+            <!-- Event Ticket Inputs -->
+            <div id="inst-field-EVENT_TICKET" class="inst-fields hidden space-y-4">
+                <div>
+                    <label for="event_name" class="block uppercase tracking-wider mb-1.5">Event Name (Overrides template)</label>
+                    <input type="text" id="event_name" name="event_name" placeholder="Summer Music Festival" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+                <div>
+                    <label for="venue" class="block uppercase tracking-wider mb-1.5">Venue Name</label>
+                    <input type="text" id="venue" name="venue" placeholder="Arena Riga" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="event_date" class="block uppercase tracking-wider mb-1.5">Event Date & Time</label>
+                        <input type="text" id="event_date" name="event_date" placeholder="July 15, 2026, 20:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label for="seat" class="block uppercase tracking-wider mb-1.5">Seat Number</label>
+                        <input type="text" id="seat" name="seat" placeholder="Sec A, Row 5, Seat 12" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coupon Inputs -->
+            <div id="inst-field-COUPON" class="inst-fields hidden space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="discount_value" class="block uppercase tracking-wider mb-1.5">Discount / Offer</label>
+                        <input type="text" id="discount_value" name="discount_value" placeholder="20% OFF" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label for="coupon_code" class="block uppercase tracking-wider mb-1.5">Coupon Code</label>
+                        <input type="text" id="coupon_code" name="coupon_code" placeholder="SUMMER20" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                </div>
+                <div>
+                    <label for="expires_at" class="block uppercase tracking-wider mb-1.5">Expiry Date</label>
+                    <input type="text" id="expires_at" name="expires_at" placeholder="Sept 30, 2026" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Boarding Pass Inputs -->
+            <div id="inst-field-BOARDING_PASS" class="inst-fields hidden space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="flight_number" class="block uppercase tracking-wider mb-1.5">Flight Number</label>
+                        <input type="text" id="flight_number" name="flight_number" placeholder="BT302" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label for="boarding_seat" class="block uppercase tracking-wider mb-1.5">Seat</label>
+                        <input type="text" id="boarding_seat" name="seat" placeholder="14A" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="origin" class="block uppercase tracking-wider mb-1.5">Origin Airport</label>
+                        <input type="text" id="origin" name="origin" placeholder="RIX" maxlength="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label for="destination" class="block uppercase tracking-wider mb-1.5">Destination Airport</label>
+                        <input type="text" id="destination" name="destination" placeholder="HEL" maxlength="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                </div>
+                <div>
+                    <label for="departure_time" class="block uppercase tracking-wider mb-1.5">Departure Date & Time</label>
+                    <input type="text" id="departure_time" name="departure_time" placeholder="July 20, 2026, 08:30" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Membership Inputs -->
+            <div id="inst-field-MEMBERSHIP" class="inst-fields hidden space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="membership_tier" class="block uppercase tracking-wider mb-1.5">Membership Tier</label>
+                        <input type="text" id="membership_tier" name="membership_tier" placeholder="Gold" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label for="membership_id" class="block uppercase tracking-wider mb-1.5">Member ID / Number</label>
+                        <input type="text" id="membership_id" name="membership_id" placeholder="83729" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                </div>
+                <div>
+                    <label for="membership_expiry" class="block uppercase tracking-wider mb-1.5">Expiration Date</label>
+                    <input type="text" id="membership_expiry" name="expires_at" placeholder="Dec 31, 2027" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Generic Inputs -->
+            <div id="inst-field-GENERIC" class="inst-fields hidden space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="custom_label_1" class="block uppercase tracking-wider mb-1.5">Label 1</label>
+                        <input type="text" id="custom_label_1" name="custom_label_1" placeholder="Company Dept" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label for="custom_value_1" class="block uppercase tracking-wider mb-1.5">Value 1</label>
+                        <input type="text" id="custom_value_1" name="custom_value_1" placeholder="Engineering" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="custom_label_2" class="block uppercase tracking-wider mb-1.5">Label 2</label>
+                        <input type="text" id="custom_label_2" name="custom_label_2" placeholder="Clearance Level" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label for="custom_value_2" class="block uppercase tracking-wider mb-1.5">Value 2</label>
+                        <input type="text" id="custom_value_2" name="custom_value_2" placeholder="Top Secret" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg mt-6 text-sm">
+                Issue Digital Pass
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Scanner -->
+<div id="scanner-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+    <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl border border-slate-100 flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+            <h4 class="font-display font-bold text-lg text-slate-900">Scan Pass QR Code</h4>
+            <button onclick="stopScanner()" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <p class="text-xs text-slate-500 font-semibold leading-relaxed">
+                Position the QR code inside the camera viewfinder to decode the pass details and update the balance.
+            </p>
+            <div id="scanner-container" class="relative w-full aspect-square bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+                <div id="reader" class="w-full h-full"></div>
+                <div class="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-brand-500 to-transparent animate-scan shadow-[0_0_8px_rgba(99,102,241,0.8)] pointer-events-none"></div>
+            </div>
+            <div id="scanner-error" class="hidden p-3 bg-rose-50 text-rose-700 border border-rose-100 rounded-xl text-[10px] font-bold">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add / Deduct Balance (API simulation) -->
+<div id="balance-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+    <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl border border-slate-100 flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+            <h4 id="balance-modal-title" class="font-display font-bold text-lg text-slate-900">Update Balance</h4>
+            <button onclick="toggleModal('balance-modal')" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form id="balance-form" class="space-y-4 text-xs font-semibold text-slate-500">
+            <input type="hidden" id="balance-instance-id">
+            <input type="hidden" id="balance-action-type">
+            
+            <div>
+                <label for="balance-amount" class="block uppercase tracking-wider mb-1.5">Amount</label>
+                <input type="number" id="balance-amount" name="amount" placeholder="50" min="0.01" step="any" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium" required>
+            </div>
+
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg mt-6 text-sm">
+                Confirm Update
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+    let html5QrCode;
+
+    function startScanner() {
+        toggleModal('scanner-modal');
+        document.getElementById('scanner-error').classList.add('hidden');
+        document.getElementById('scanner-error').innerText = '';
+
+        // Initialize html5QrCode
+        html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+            onScanFailure
+        ).catch(err => {
+            console.error("Failed to start scanner:", err);
+            document.getElementById('scanner-error').innerText = `Camera error: ${err.message || err}`;
+            document.getElementById('scanner-error').classList.remove('hidden');
+        });
+    }
+
+    function stopScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                toggleModal('scanner-modal');
+            }).catch(err => {
+                console.error("Failed to stop scanner:", err);
+                toggleModal('scanner-modal');
+            });
+        } else {
+            toggleModal('scanner-modal');
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        console.log(`Scan result: ${decodedText}`);
+        let instanceId = null;
+        
+        const text = decodedText.trim();
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        
+        if (uuidRegex.test(text)) {
+            instanceId = text;
+        } else {
+            try {
+                const urlObj = new URL(text);
+                const pathParts = urlObj.pathname.split('/');
+                const instIdx = pathParts.indexOf('instances');
+                if (instIdx !== -1 && pathParts[instIdx + 1]) {
+                    const candidate = pathParts[instIdx + 1];
+                    if (uuidRegex.test(candidate)) {
+                        instanceId = candidate;
+                    }
+                }
+            } catch (e) {
+                const matches = text.match(/\/instances\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+                if (matches && matches[1]) {
+                    instanceId = matches[1];
+                }
+            }
+        }
+
+        if (!instanceId) {
+            document.getElementById('scanner-error').innerText = "Invalid QR code format. Could not extract pass UUID.";
+            document.getElementById('scanner-error').classList.remove('hidden');
+            return;
+        }
+
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                toggleModal('scanner-modal');
+                
+                fetch(`/api/v1/instances/${instanceId}/`)
+                    .then(res => {
+                        if (res.ok) {
+                            return res.json();
+                        }
+                        throw new Error("Pass does not exist or does not belong to your merchant company.");
+                    })
+                    .then(data => {
+                        openBalanceModal(data.serial_number, 'REDEEM', data.customer_name, data.pass_type);
+                    })
+                    .catch(err => {
+                        alert(`Scanner Error: ${err.message}`);
+                    });
+            }).catch(err => {
+                console.error("Failed to stop scanner:", err);
+            });
+        }
+    }
+
+    function onScanFailure(error) {
+        // Silent
+    }
+
+    function toggleModal(id) {
+        document.getElementById(id).classList.toggle('hidden');
+    }
+
+    // Call REST API endpoint to fetch Google Wallet URL
+    function fetchGoogleUrl(instanceId) {
+        fetch(`/api/v1/instances/${instanceId}/google/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.save_url) {
+                    window.open(data.save_url, '_blank');
+                } else {
+                    alert("Error generating Google Wallet link.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Failed to connect to server API.");
+            });
+    }
+
+    // Open Point Update Modal
+    function openBalanceModal(instanceId, actionType, customerName, passType) {
+        document.getElementById('balance-instance-id').value = instanceId;
+        document.getElementById('balance-action-type').value = actionType;
+        
+        const amountInput = document.getElementById('balance-amount');
+        const labelEl = amountInput.previousElementSibling;
+        amountInput.value = '';
+        
+        if (passType === 'LOYALTY') {
+            amountInput.step = '1';
+            amountInput.min = '1';
+            amountInput.placeholder = '50';
+            if (labelEl) labelEl.innerText = 'Points';
+        } else {
+            amountInput.step = '0.01';
+            amountInput.min = '0.01';
+            amountInput.placeholder = '10.00';
+            if (labelEl) labelEl.innerText = 'Amount (€)';
+        }
+        
+        const titleEl = document.getElementById('balance-modal-title');
+        titleEl.innerText = actionType === 'ADD' 
+            ? `${passType === 'LOYALTY' ? 'Add Points' : 'Add Value'} - ${customerName}` 
+            : `${passType === 'LOYALTY' ? 'Redeem Points' : 'Redeem Value'} - ${customerName}`;
+        
+        toggleModal('balance-modal');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('template_id');
+        const balanceInput = document.getElementById('initial_balance');
+        const labelEl = balanceInput ? balanceInput.previousElementSibling : null;
+        
+        function updateInitialFields() {
+            if (!select) return;
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption) {
+                const passType = selectedOption.getAttribute('data-pass-type');
+                
+                // Hide all instances fields containers first
+                document.querySelectorAll('.inst-fields').forEach(el => {
+                    el.classList.add('hidden');
+                });
+                
+                // If loyalty or gift card, update balance constraints and show balance field
+                if (passType === 'LOYALTY' || passType === 'GIFT_CARD') {
+                    if (balanceInput) {
+                        if (passType === 'LOYALTY') {
+                            balanceInput.step = '1';
+                            balanceInput.min = '0';
+                            if (labelEl) labelEl.innerText = 'Initial Points';
+                        } else {
+                            balanceInput.step = '0.01';
+                            balanceInput.min = '0';
+                            if (labelEl) labelEl.innerText = 'Initial Balance (€)';
+                        }
+                    }
+                    const balanceContainer = document.getElementById('inst-field-balance');
+                    if (balanceContainer) {
+                        balanceContainer.classList.remove('hidden');
+                    }
+                } else {
+                    // Show corresponding pass type specific fields
+                    const targetContainer = document.getElementById(`inst-field-${passType}`);
+                    if (targetContainer) {
+                        targetContainer.classList.remove('hidden');
+                    }
+                }
+            }
+        }
+        
+        if (select) {
+            select.addEventListener('change', updateInitialFields);
+            updateInitialFields();
+        }
+    });
+
+    // Submit Point Update (Calls viewset endpoints)
+    const balanceForm = document.getElementById('balance-form');
+    balanceForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const instanceId = document.getElementById('balance-instance-id').value;
+        const actionType = document.getElementById('balance-action-type').value;
+        const amount = document.getElementById('balance-amount').value;
+        
+        const endpoint = actionType === 'ADD' ? 'add_points' : 'redeem';
+        
+        fetch(`/api/v1/instances/${instanceId}/${endpoint}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ amount: amount })
+        })
+        .then(res => {
+            if (res.ok) {
+                alert(`Successfully processed!`);
+                window.location.reload();
+            } else {
+                res.json().then(data => {
+                    alert(`Error: ${data.error || 'Failed to update balance.'}`);
+                });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Network error.");
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - PassFlow Merchant Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900 min-h-screen flex items-center justify-center p-6 relative overflow-hidden font-sans">
+    
+    <!-- Abstract blurred gradients -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl -z-10"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-fuchsia-500/20 rounded-full blur-3xl -z-10"></div>
+
+    <div class="w-full max-w-md glass rounded-3xl p-8 shadow-2xl relative">
+        <!-- Brand Header -->
+        <div class="text-center mb-8">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 mx-auto mb-3">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+            </div>
+            <h1 class="font-display font-bold text-2xl text-slate-900">Sign In to PassFlow</h1>
+            <p class="text-xs text-slate-500 mt-1.5">Enter your employee credentials to access your company dashboard</p>
+        </div>
+
+        <!-- Messages/Alerts -->
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="p-3.5 rounded-xl text-xs font-semibold border {% if message.tags == 'error' %}bg-rose-50 text-rose-700 border-rose-100{% else %}bg-indigo-50 text-indigo-700 border-indigo-100{% endif %} flex items-center space-x-2">
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Form -->
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            
+            <div>
+                <label for="username" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Username</label>
+                <input type="text" id="username" name="username" placeholder="john_doe" class="w-full px-4 py-3 bg-white/70 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none rounded-xl text-sm transition-all" required>
+            </div>
+
+            <div>
+                <label for="password" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Password</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" class="w-full px-4 py-3 bg-white/70 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none rounded-xl text-sm transition-all" required>
+            </div>
+
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:-translate-y-0.5 active:translate-y-0 duration-150 text-sm mt-6">
+                Log In
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 pt-6 border-t border-slate-200/50">
+            <a href="{% url 'landing' %}" class="text-xs text-slate-500 hover:text-indigo-600 font-medium transition-colors">← Back to Marketing Site</a>
+        </div>
+    </div>
+</body>
+</html>

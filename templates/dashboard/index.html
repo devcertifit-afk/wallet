@@ -1,0 +1,153 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Overview{% endblock %}
+{% block header_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="bg-gradient-to-r from-slate-900 via-brand-900 to-indigo-950 rounded-3xl p-8 text-white mb-8 relative overflow-hidden shadow-lg border border-brand-100/10">
+    <div class="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+    <div class="relative z-10 max-w-xl">
+        <h3 class="font-display font-bold text-2xl">Good day, {{ employee.user.username }}!</h3>
+        <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            Welcome to your **{{ company.name }}** dashboard. Track installs, issue passes, and manage your staff settings here.
+        </p>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Stat 1: Active Passes -->
+    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Active Passes</span>
+            <span class="font-display font-extrabold text-3xl text-slate-900 block mt-2">{{ total_active_passes }}</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-brand-600">
+            📇
+        </div>
+    </div>
+
+    <!-- Stat 2: Redemptions -->
+    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Redemptions</span>
+            <span class="font-display font-extrabold text-3xl text-slate-900 block mt-2">{{ total_redemptions }}</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+            ✅
+        </div>
+    </div>
+
+    <!-- Stat 3: Points/Balance -->
+    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Loyalty Points Issued</span>
+            <span class="font-display font-extrabold text-3xl text-slate-900 block mt-2">{{ total_points }}</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+            🌟
+        </div>
+    </div>
+
+    <!-- Stat 4: Uninstall Rate -->
+    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Uninstall Rate</span>
+            <span class="font-display font-extrabold text-3xl text-slate-900 block mt-2">{{ uninstall_rate }}%</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600">
+            📉
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Chart & Recent Activity -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- SVG Line Chart (Left 7 Columns) -->
+    <div class="lg:col-span-7 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col h-[380px]">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h4 class="font-display font-bold text-lg text-slate-900">Pass Installations Trend</h4>
+                <p class="text-xs text-slate-400">Past 30 days active installs</p>
+            </div>
+            <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">Finland Region</span>
+        </div>
+        
+        <!-- SVG Container -->
+        <div class="flex-1 w-full relative flex items-center justify-center bg-slate-50/50 rounded-2xl border border-slate-100/50 p-2 overflow-hidden">
+            {% if svg_points %}
+            <svg viewBox="0 0 {{ svg_width }} {{ svg_height }}" class="w-full h-full overflow-visible">
+                <!-- Grids -->
+                <line x1="15" y1="15" x2="{{ svg_width|add:-15 }}" y2="15" stroke="#f1f5f9" stroke-width="1" />
+                <line x1="15" y1="75" x2="{{ svg_width|add:-15 }}" y2="75" stroke="#f1f5f9" stroke-width="1" />
+                <line x1="15" y1="135" x2="{{ svg_width|add:-15 }}" y2="135" stroke="#f1f5f9" stroke-width="1" />
+
+                <!-- Trend Line -->
+                <polyline fill="none" stroke="#6366f1" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" points="{{ svg_points }}" />
+
+                <!-- Hover Data points helper overlay via JS -->
+                {% for point in trend_data %}
+                <!-- Render simple dot for each point -->
+                <!-- We calculate the exact X,Y using python templates but it's simpler to let them load -->
+                {% endfor %}
+            </svg>
+            {% else %}
+            <span class="text-xs text-slate-400">No installation events recorded in the last 30 days.</span>
+            {% endif %}
+        </div>
+        
+        <!-- Graph footer/axis labels -->
+        <div class="flex justify-between text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-4 px-2 select-none">
+            <span>30 days ago</span>
+            <span>15 days ago</span>
+            <span>Today</span>
+        </div>
+    </div>
+
+    <!-- Recent Activity Table (Right 5 Columns) -->
+    <div class="lg:col-span-5 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col h-[380px]">
+        <div class="mb-6">
+            <h4 class="font-display font-bold text-lg text-slate-900">Recent Activity Log</h4>
+            <p class="text-xs text-slate-400">Latest actions performed on customer passes</p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+            {% for act in recent_activity %}
+            <div class="flex items-start space-x-3 text-xs pb-3 border-b border-slate-100 last:border-0 last:pb-0">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0
+                    {% if act.event_type == 'CREATE' %}bg-indigo-50 text-indigo-700
+                    {% elif act.event_type == 'INSTALL' %}bg-blue-50 text-blue-700
+                    {% elif act.event_type == 'REDEMPTION' %}bg-rose-50 text-rose-700
+                    {% else %}bg-emerald-50 text-emerald-700{% endif %}">
+                    {% if act.event_type == 'CREATE' %}➕
+                    {% elif act.event_type == 'INSTALL' %}📲
+                    {% elif act.event_type == 'REDEMPTION' %}✂️
+                    {% else %}📈{% endif %}
+                </div>
+                <div class="flex-1 truncate">
+                    <span class="font-bold text-slate-800 block truncate">
+                        {{ act.get_event_type_display }}
+                        {% if act.pass_instance %}
+                        for {{ act.pass_instance.customer_name }}
+                        {% endif %}
+                    </span>
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">{{ act.timestamp|timesince }} ago</span>
+                </div>
+                {% if act.value_changed != 0.00 %}
+                <span class="font-mono font-bold whitespace-nowrap
+                    {% if act.value_changed < 0 %}text-rose-600{% else %}text-emerald-600{% endif %}">
+                    {% if act.value_changed > 0 %}+{% endif %}{% if act.pass_instance.template.pass_type == 'LOYALTY' %}{{ act.value_changed|floatformat:0 }}{% else %}{{ act.value_changed }}{% endif %}
+                </span>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="h-full flex items-center justify-center text-center py-12">
+                <span class="text-xs text-slate-400">No activity logged yet. Issue passes to get started!</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

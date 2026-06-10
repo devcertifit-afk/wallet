@@ -1,0 +1,285 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Pass Templates{% endblock %}
+{% block header_title %}Pass Templates{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h3 class="font-display font-bold text-xl text-slate-800">Pass Designs</h3>
+        <p class="text-xs text-slate-400">Design and configure Google & Apple Wallet cards</p>
+    </div>
+    {% if employee.role == 'OWNER' or employee.role == 'ADMIN' %}
+    <button onclick="toggleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md transition-colors flex items-center space-x-2">
+        <span>+ New Design</span>
+    </button>
+    {% endif %}
+</div>
+
+<!-- Template Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for temp in templates %}
+    <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between h-[280px]">
+        <!-- Pass Mock Card Visual -->
+        <div style="background-color: {{ temp.background_color }}; color: {{ temp.foreground_color }};" class="rounded-2xl p-4 flex flex-col justify-between h-[150px] shadow-sm relative overflow-hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center text-[10px] font-bold tracking-widest uppercase">
+                <span>{{ temp.title }}</span>
+                <span class="opacity-80">{{ temp.get_pass_type_display }}</span>
+            </div>
+            <!-- Body -->
+            <div class="my-auto">
+                {% if temp.pass_type == 'LOYALTY' %}
+                    <span style="color: {{ temp.label_color }};" class="text-[9px] uppercase tracking-wider block opacity-70">Loyalty Account</span>
+                    <span class="font-display font-extrabold text-lg block mt-0.5">Jane Doe</span>
+                {% elif temp.pass_type == 'GIFT_CARD' %}
+                    <span style="color: {{ temp.label_color }};" class="text-[9px] uppercase tracking-wider block opacity-70">Gift Card Voucher</span>
+                    <span class="font-display font-extrabold text-lg block mt-0.5">Jane Doe</span>
+                {% elif temp.pass_type == 'EVENT_TICKET' %}
+                    <span style="color: {{ temp.label_color }};" class="text-[9px] uppercase tracking-wider block opacity-70">Event Ticket</span>
+                    <span class="font-display font-extrabold text-sm block mt-0.5 truncate">{{ temp.default_data.default_event_name|default:temp.title }}</span>
+                {% elif temp.pass_type == 'BOARDING_PASS' %}
+                    <span style="color: {{ temp.label_color }};" class="text-[9px] uppercase tracking-wider block opacity-70">Transit / Flight</span>
+                    <span class="font-display font-extrabold text-sm block mt-0.5">RIX ➔ HEL</span>
+                {% elif temp.pass_type == 'COUPON' %}
+                    <span style="color: {{ temp.label_color }};" class="text-[9px] uppercase tracking-wider block opacity-70">Special Offer</span>
+                    <span class="font-display font-extrabold text-lg block mt-0.5">{{ temp.default_data.default_discount|default:"20% OFF" }}</span>
+                {% elif temp.pass_type == 'MEMBERSHIP' %}
+                    <span style="color: {{ temp.label_color }};" class="text-[9px] uppercase tracking-wider block opacity-70">Member Card</span>
+                    <span class="font-display font-extrabold text-lg block mt-0.5">{{ temp.default_data.default_tier|default:"Gold Tier" }}</span>
+                {% else %}
+                    <span style="color: {{ temp.label_color }};" class="text-[9px] uppercase tracking-wider block opacity-70">Generic Pass</span>
+                    <span class="font-display font-extrabold text-lg block mt-0.5">Jane Doe</span>
+                {% endif %}
+            </div>
+            <!-- Footer -->
+            <div class="flex justify-between items-end border-t border-white/10 pt-2 text-[9px]">
+                <div class="w-16 h-4 bg-white/20 rounded"></div> <!-- Mock Barcode -->
+                <span class="font-bold opacity-90">
+                    {% if temp.pass_type == 'LOYALTY' %}
+                        150 pts
+                    {% elif temp.pass_type == 'GIFT_CARD' %}
+                        €50.00
+                    {% elif temp.pass_type == 'EVENT_TICKET' %}
+                        Row 5, Seat 12
+                    {% elif temp.pass_type == 'BOARDING_PASS' %}
+                        Seat 14A
+                    {% elif temp.pass_type == 'COUPON' %}
+                        Promo Code
+                    {% elif temp.pass_type == 'MEMBERSHIP' %}
+                        ID: #837A
+                    {% else %}
+                        Pass
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Details -->
+        <div class="mt-4 flex-1 flex flex-col justify-between">
+            <div>
+                <span class="font-bold text-slate-800 text-sm block truncate">{{ temp.title }}</span>
+                <span class="text-[10px] text-slate-400 mt-1 block truncate">
+                    {{ temp.description|default:"No description provided" }}
+                </span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 mt-3 pt-3 border-t border-slate-100">
+                <span>Created {{ temp.created_at|date:"M d, Y" }}</span>
+                <span class="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded uppercase">{{ temp.pass_type }}</span>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
+        <span class="text-3xl block mb-3">🎨</span>
+        <h4 class="font-display font-bold text-slate-800 text-base">No templates created yet</h4>
+        <p class="text-xs text-slate-400 mt-1">Design your first loyalty or gift card to start issuing passes to customers.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Form (Hidden by default) -->
+<div id="template-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+    <div class="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h4 class="font-display font-bold text-lg text-slate-900">Create Pass Design</h4>
+            <button onclick="toggleModal()" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form id="template-form" method="POST" class="space-y-4 text-xs font-semibold text-slate-500">
+            {% csrf_token %}
+            <div>
+                <label for="title" class="block uppercase tracking-wider mb-1.5">Card Title</label>
+                <input type="text" id="title" name="title" placeholder="Coffee Club Rewards" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium" required>
+            </div>
+
+            <div>
+                <label for="pass_type" class="block uppercase tracking-wider mb-1.5">Pass Type</label>
+                <select id="pass_type" name="pass_type" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                    {% for key, val in pass_types %}
+                    <option value="{{ key }}">{{ val }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Event Ticket Options -->
+            <div id="type-opts-EVENT_TICKET" class="type-opts hidden space-y-4">
+                <div>
+                    <label for="default_event_name" class="block uppercase tracking-wider mb-1.5">Default Event Name</label>
+                    <input type="text" id="default_event_name" name="default_event_name" placeholder="Summer Music Festival" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+                <div>
+                    <label for="default_venue" class="block uppercase tracking-wider mb-1.5">Default Venue Name</label>
+                    <input type="text" id="default_venue" name="default_venue" placeholder="Arena Riga" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Coupon Options -->
+            <div id="type-opts-COUPON" class="type-opts hidden space-y-4">
+                <div>
+                    <label for="default_discount" class="block uppercase tracking-wider mb-1.5">Default Discount / Offer Text</label>
+                    <input type="text" id="default_discount" name="default_discount" placeholder="20% OFF" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Boarding Pass Options -->
+            <div id="type-opts-BOARDING_PASS" class="type-opts hidden space-y-4">
+                <div>
+                    <label for="default_carrier" class="block uppercase tracking-wider mb-1.5">Default Carrier (IATA Code)</label>
+                    <input type="text" id="default_carrier" name="default_carrier" placeholder="BT" maxlength="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+                <div>
+                    <label for="default_origin" class="block uppercase tracking-wider mb-1.5">Default Origin (IATA Code)</label>
+                    <input type="text" id="default_origin" name="default_origin" placeholder="RIX" maxlength="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Membership Options -->
+            <div id="type-opts-MEMBERSHIP" class="type-opts hidden space-y-4">
+                <div>
+                    <label for="default_tier" class="block uppercase tracking-wider mb-1.5">Default Membership Tier</label>
+                    <input type="text" id="default_tier" name="default_tier" placeholder="Gold" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+                </div>
+            </div>
+
+            <div>
+                <label for="description" class="block uppercase tracking-wider mb-1.5">Description</label>
+                <textarea id="description" name="description" placeholder="Earn points with every cup..." rows="2" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium"></textarea>
+            </div>
+
+            <div>
+                <label for="sku" class="block uppercase tracking-wider mb-1.5">SKU Code (Optional)</label>
+                <input type="text" id="sku" name="sku" placeholder="SKU-COFFEE-ESPRESSO-10" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium">
+            </div>
+
+            <div>
+                <label for="custom_metadata" class="block uppercase tracking-wider mb-1.5">Custom Developer Metadata (JSON, Optional)</label>
+                <textarea id="custom_metadata" name="custom_metadata" placeholder='{"campaign": "summer_promo", "restricted_items": ["pastry"]}' rows="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 rounded-xl text-slate-800 text-sm font-medium font-mono"></textarea>
+            </div>
+
+            <!-- Color Options -->
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label for="background_color" class="block uppercase tracking-wider mb-1.5">Background</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="color" id="background_color" name="background_color" value="#4f46e5" class="w-8 h-8 border border-slate-200 rounded cursor-pointer p-0.5">
+                        <input type="text" id="background_color_hex" value="#4f46e5" class="w-16 py-1 bg-transparent border-0 border-b border-slate-200 focus:outline-none text-slate-700 text-center uppercase">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="foreground_color" class="block uppercase tracking-wider mb-1.5">Text (FG)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="color" id="foreground_color" name="foreground_color" value="#ffffff" class="w-8 h-8 border border-slate-200 rounded cursor-pointer p-0.5">
+                        <input type="text" id="foreground_color_hex" value="#ffffff" class="w-16 py-1 bg-transparent border-0 border-b border-slate-200 focus:outline-none text-slate-700 text-center uppercase">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="label_color" class="block uppercase tracking-wider mb-1.5">Label (FG)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="color" id="label_color" name="label_color" value="#ffffff" class="w-8 h-8 border border-slate-200 rounded cursor-pointer p-0.5">
+                        <input type="text" id="label_color_hex" value="#ffffff" class="w-16 py-1 bg-transparent border-0 border-b border-slate-200 focus:outline-none text-slate-700 text-center uppercase">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg mt-6 text-sm">
+                Save Card Design
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const modal = document.getElementById('template-modal');
+    
+    function toggleModal() {
+        modal.classList.toggle('hidden');
+    }
+
+    const passTypeSelect = document.getElementById('pass_type');
+    function updateTypeSpecificFields() {
+        if (!passTypeSelect) return;
+        
+        // Hide all custom containers
+        document.querySelectorAll('.type-opts').forEach(el => {
+            el.classList.add('hidden');
+        });
+        
+        // Show selected custom container if it exists
+        const selectedType = passTypeSelect.value;
+        const targetContainer = document.getElementById(`type-opts-${selectedType}`);
+        if (targetContainer) {
+            targetContainer.classList.remove('hidden');
+        }
+    }
+    if (passTypeSelect) {
+        passTypeSelect.addEventListener('change', updateTypeSpecificFields);
+        updateTypeSpecificFields(); // initial run
+    }
+
+    // Sync color picker with hex values input
+    const colorFields = ['background_color', 'foreground_color', 'label_color'];
+    colorFields.forEach(field => {
+        const picker = document.getElementById(field);
+        const input = document.getElementById(`${field}_hex`);
+        
+        picker.addEventListener('input', (e) => {
+            input.value = e.target.value.toUpperCase();
+        });
+        
+        input.addEventListener('input', (e) => {
+            let val = e.target.value;
+            if (val.startsWith('#') && val.length === 7) {
+                picker.value = val;
+            }
+        });
+    });
+
+    const form = document.getElementById('template-form');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            const metadataText = document.getElementById('custom_metadata').value.trim();
+            if (metadataText) {
+                try {
+                    const parsed = JSON.parse(metadataText);
+                    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                        e.preventDefault();
+                        alert("Custom metadata must be a valid JSON object/dictionary (e.g. {\"key\": \"value\"}).");
+                    }
+                } catch (err) {
+                    e.preventDefault();
+                    alert("Invalid JSON format in custom metadata: " + err.message);
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+django
+djangorestframework
+psycopg2-binary
+django-environ
+requests
+pyjwt
+cryptography
+google-cloud-tasks
+google-cloud-storage
+google-cloud-secret-manager
+Pillow
+whitenoise
+gunicorn
+
+
