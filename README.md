@@ -1,6 +1,6 @@
-# UnisonPass - Wallet Pass Management Platform
+# UnisonPass - Growth & Loyalty Platform for Verticals
 
-UnisonPass is a Django-based platform that allows merchants in the European Union to create, manage, and analyze Google Wallet and Apple Wallet passes.
+UnisonPass is a multi-product SaaS platform designed to drive customer growth, repeat conversions, and retention for specific business verticals. Built around an integrated core of Apple Wallet passes, Google Pay passes, and flexible loyalty engines, it enables merchants to cultivate direct customer relationships, automate engagement campaigns, and unlock growth intelligence.
 
 ---
 

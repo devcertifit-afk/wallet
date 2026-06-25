@@ -48,6 +48,17 @@ class UnisonPassAPITests(APITestCase):
         )
         self.client.force_authenticate(user=self.user)
 
+        # Start patchers for wallet pass generation to avoid missing credentials errors
+        from unittest.mock import patch
+        self.apple_patcher = patch('passes.utils.pass_generator.ApplePassGenerator.sign_manifest', return_value=b'mock_signature')
+        self.google_patcher = patch('passes.utils.pass_generator.GoogleWalletGenerator.generate_save_url', return_value='https://pay.google.com/gp/v/save/mocktoken')
+        self.apple_patcher.start()
+        self.google_patcher.start()
+
+    def tearDown(self):
+        self.apple_patcher.stop()
+        self.google_patcher.stop()
+
 
     def test_get_companies(self):
         url = reverse('company-list')
@@ -384,5 +395,127 @@ class UnisonPassDashboardTests(TestCase):
         employee = Employee.objects.get(user=user)
         self.assertEqual(employee.company, company)
         self.assertEqual(employee.role, Employee.Roles.OWNER)
+
+
+from passes.models import Location, StripeTransaction
+from passes.loyalty_engine import LoyaltyEngine
+
+class UnisonPassPhase1Tests(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(name="Cafe Roma", slug="cafe-roma", vertical="CAFE")
+        self.location = Location.objects.create(company=self.company, name="Downtown Branch", address="123 Main St")
+        self.template = PassTemplate.objects.create(
+            company=self.company,
+            pass_type=PassTemplate.PassTypes.LOYALTY,
+            title="Roma Rewards",
+            custom_metadata={"loyalty_type": "POINTS", "points_per_eur": 2.0}
+        )
+        self.punch_template = PassTemplate.objects.create(
+            company=self.company,
+            pass_type=PassTemplate.PassTypes.LOYALTY,
+            title="Coffee Punch Card",
+            custom_metadata={"loyalty_type": "PUNCH_CARD", "target_limit": 3, "reward": "Free Latte"}
+        )
+
+    def test_location_and_stripetransaction_creation(self):
+        # Test Location
+        self.assertEqual(self.location.name, "Downtown Branch")
+        self.assertEqual(str(self.location), "Downtown Branch - Cafe Roma")
+
+        # Test StripeTransaction
+        tx = StripeTransaction.objects.create(
+            company=self.company,
+            vertical="CAFE",
+            stripe_payment_intent_id="pi_test_123",
+            amount=20.00,
+            platform_fee=0.00,
+            status="succeeded"
+        )
+        self.assertEqual(tx.stripe_payment_intent_id, "pi_test_123")
+        self.assertEqual(tx.amount, 20.00)
+        self.assertEqual(str(tx), "pi_test_123 (CAFE) - 20.00 EUR")
+
+    def test_loyalty_engine_points(self):
+        instance = PassInstance.objects.create(
+            template=self.template,
+            customer_name="John Doe",
+            customer_email="john@example.com",
+            balance=0.00
+        )
+        engine = LoyaltyEngine()
+        points_earned = engine.earn_points(instance, 10.00, "CAFE")
+        
+        # 10.00 * 2.0 = 20 points
+        self.assertEqual(points_earned, 20)
+        instance.refresh_from_db()
+        self.assertEqual(instance.balance, 20.00)
+        self.assertEqual(engine.get_tier(instance), "Bronze")
+
+    def test_loyalty_engine_punch_card(self):
+        instance = PassInstance.objects.create(
+            template=self.punch_template,
+            customer_name="Alice Smith",
+            customer_email="alice@example.com",
+            balance=0.00
+        )
+        engine = LoyaltyEngine()
+        
+        # Earn 1 punch
+        engine.earn_points(instance, 0.00, "CAFE")
+        instance.refresh_from_db()
+        self.assertEqual(instance.balance, 1.00)
+        
+        # Earn 2nd punch
+        engine.earn_points(instance, 0.00, "CAFE")
+        instance.refresh_from_db()
+        self.assertEqual(instance.balance, 2.00)
+        self.assertEqual(instance.pass_data.get('rewards'), None)
+        
+        # Earn 3rd punch -> target limit is 3. Counter resets to 0 and Free Latte is added to rewards list.
+        engine.earn_points(instance, 0.00, "CAFE")
+        instance.refresh_from_db()
+        self.assertEqual(instance.balance, 0.00)
+        self.assertEqual(instance.pass_data.get('rewards'), ["Free Latte"])
+
+    def test_site_detection_middleware(self):
+        from django.test import RequestFactory
+        from wallet_platform.middleware import SiteDetectionMiddleware
+
+        factory = RequestFactory()
+        
+        # Test default fallback
+        request = factory.get('/')
+        middleware = SiteDetectionMiddleware(lambda req: req)
+        middleware(request)
+        self.assertEqual(request.vertical, "GENERIC")
+
+        # Test Host domain mapping
+        request = factory.get('/', HTTP_HOST='tickets.com')
+        middleware(request)
+        self.assertEqual(request.vertical, "TICKETING")
+
+        # Test local domain mapping
+        request = factory.get('/', HTTP_HOST='gym.localhost:8000')
+        middleware(request)
+        self.assertEqual(request.vertical, "GYM")
+
+        # Test query parameter override
+        request = factory.get('/?vertical=cafe')
+        middleware(request)
+        self.assertEqual(request.vertical, "CAFE")
+
+        # Test X-Vertical header override
+        request = factory.get('/', HTTP_X_VERTICAL='TICKETING')
+        middleware(request)
+        self.assertEqual(request.vertical, "TICKETING")
+
+        # Test custom domain white-label mapping
+        self.company.custom_domain = "cafe.myroma.com"
+        self.company.save()
+        
+        request = factory.get('/', HTTP_HOST='cafe.myroma.com')
+        middleware(request)
+        self.assertEqual(request.vertical, "CAFE")
+
 
 

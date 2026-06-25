@@ -32,9 +32,30 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-jz)8*!e^8yg04t$m5z-jc7io
 DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
-# Always allow the custom domain in production
-if 'unisonpass.com' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.extend(['unisonpass.com', 'www.unisonpass.com'])
+# Always allow the custom domain in production, plus vertical domains and localhost subdomains
+extra_hosts = [
+    'unisonpass.com', 'www.unisonpass.com',
+    'tickets.com', 'www.tickets.com',
+    'gym.com', 'www.gym.com',
+    'cafe.com', 'www.cafe.com',
+    '.localhost', 'localhost', '127.0.0.1'
+]
+for host in extra_hosts:
+    if host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+
+VERTICAL_DOMAINS = {
+    'tickets.com': 'TICKETING',
+    'www.tickets.com': 'TICKETING',
+    'gym.com': 'GYM',
+    'www.gym.com': 'GYM',
+    'cafe.com': 'CAFE',
+    'www.cafe.com': 'CAFE',
+    # local development domains
+    'tickets.localhost': 'TICKETING',
+    'gym.localhost': 'GYM',
+    'cafe.localhost': 'CAFE',
+}
 
 
 # Application definition
@@ -58,6 +79,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'wallet_platform.middleware.SiteDetectionMiddleware',  # Multi-vertical detection middleware
     'django.middleware.locale.LocaleMiddleware',  # Added for multi-language support
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
