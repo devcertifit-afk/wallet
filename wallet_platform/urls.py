@@ -43,6 +43,9 @@ urlpatterns = [
     path('dashboard/templates/', dashboard_templates, name='dashboard-templates'),
     path('dashboard/instances/', dashboard_instances, name='dashboard-instances'),
     path('dashboard/employees/', dashboard_employees, name='dashboard-employees'),
+
+    # Ticketing routes
+    path('', include('ticketing.urls')),
 ]
 
 

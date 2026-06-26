@@ -70,11 +70,10 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          # Pass environment variables and secrets to Cloud Run
-          # Example:
-          # env_vars: |
-          #   DEBUG=False
-          #   DJANGO_SETTINGS_MODULE=wallet_platform.settings
+          env_vars: |
+            DEBUG=False
+            STRIPE_PUBLIC_KEY=pk_test_51TmU7zAE7CMgmvdQYBNnnXdclPqKHJhaKJrClTHzqRZZyD7nhFNN4IBROPiexLKSiF6DyJfSKeKWSs9kzP6OefSC00reQAnGIh
+            APP_DOMAIN=wallet-app-ioidrsi2kq-lz.a.run.app
           secrets: |
             DATABASE_URL=DATABASE_URL:latest
             APPLE_PASS_CERT=APPLE_PASS_CERT:latest
@@ -82,4 +81,5 @@ jobs:
             APPLE_WWDR_CERT=APPLE_WWDR_CERT:latest
             GOOGLE_SERVICE_ACCOUNT_EMAIL=GOOGLE_SERVICE_ACCOUNT_EMAIL:latest
             GOOGLE_SERVICE_ACCOUNT_KEY=GOOGLE_SERVICE_ACCOUNT_KEY:latest
+            STRIPE_SECRET_KEY=STRIPE_TEST_SECRET_KEY:latest
           flags: '--allow-unauthenticated --add-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:wallet-db'

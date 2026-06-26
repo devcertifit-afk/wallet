@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stripe Checkout Sandbox - UnisonPass</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased overflow-x-hidden min-h-screen flex items-center justify-center p-6">
+
+    <!-- Mock Checkout Card -->
+    <div class="w-full max-w-4xl bg-white border border-slate-100 rounded-[32px] shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12">
+        
+        <!-- Left: Summary Info (Dynamic Dark/Gradient Panel) -->
+        <div class="md:col-span-5 bg-slate-900 text-white p-8 md:p-10 flex flex-col justify-between space-y-8 relative">
+            <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-fuchsia-950/40 mix-blend-overlay"></div>
+            
+            <div class="relative space-y-6">
+                <!-- Branding -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-fuchsia-600 flex items-center justify-center shadow-md">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                    </div>
+                    <span class="font-display font-bold text-lg">Unison<span class="text-brand-500">Pass</span></span>
+                </div>
+
+                <!-- Event Details Summary -->
+                <div class="space-y-4 pt-4">
+                    <span class="text-[10px] font-bold text-brand-500 uppercase tracking-widest block">Event Tickets</span>
+                    <h2 class="font-display font-extrabold text-2xl tracking-tight leading-tight">{{ order.event.name }}</h2>
+                    
+                    <div class="space-y-2 pt-2">
+                        <p class="text-xs text-slate-400 font-medium flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>{{ order.event.date|date:"F j, Y @ g:i A" }}</span>
+                        </p>
+                        <p class="text-xs text-slate-400 font-medium flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            </svg>
+                            <span>{{ order.event.venue.name }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Price and Order Details -->
+            <div class="relative border-t border-slate-800 pt-6 space-y-4">
+                <div class="flex justify-between items-center text-sm font-semibold">
+                    <span class="text-slate-400">{{ order.ticket_type }} Ticket x 1</span>
+                    <span>€{{ amount }}</span>
+                </div>
+                <div class="flex justify-between items-baseline">
+                    <span class="text-slate-400 text-xs">Total Due</span>
+                    <span class="text-3xl font-display font-extrabold text-white">€{{ amount }}</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block">
+                    Ref: {{ order.order_ref }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Stripe Form Portal -->
+        <div class="md:col-span-7 p-8 md:p-10 flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-display font-bold text-xl text-slate-800">Secure Payment</h3>
+                    <!-- Stripe Logo Mockup -->
+                    <span class="text-slate-400 text-xs font-bold font-display uppercase tracking-widest flex items-center space-x-1">
+                        <span class="text-indigo-600 font-extrabold">stripe</span>
+                        <span>sandbox</span>
+                    </span>
+                </div>
+
+                <!-- Sandbox Warning -->
+                <div class="p-4 bg-amber-50 border border-amber-100 text-amber-800 rounded-2xl text-xs font-semibold flex items-start space-x-2">
+                    <svg class="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <p class="font-bold">Local Gateway Simulation</p>
+                        <p class="text-amber-700/80 font-normal mt-0.5">Stripe keys are not configured. Click "Authorize Payment" below to simulate a successful API response and continue testing.</p>
+                    </div>
+                </div>
+
+                <!-- Mock Payment Form (aesthetic details only) -->
+                <div class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
+                        <input type="email" disabled value="{{ order.buyer_email }}" class="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-500 font-medium">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Card Details</label>
+                        <div class="relative">
+                            <input type="text" placeholder="4242  4242  4242  4242" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm text-slate-800 font-medium focus:outline-none focus:border-brand-500 transition-colors">
+                            <div class="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                                <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase">Visa</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <input type="text" placeholder="MM / YY" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium focus:outline-none focus:border-brand-500 transition-colors">
+                            <input type="text" placeholder="CVC" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium focus:outline-none focus:border-brand-500 transition-colors">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cardholder Name</label>
+                        <input type="text" value="{{ order.buyer_name }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Portal Forms -->
+            <form action="" method="POST" class="flex flex-col sm:flex-row gap-3">
+                {% csrf_token %}
+                <button type="submit" name="action" value="pay" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-indigo-600/10 transition-colors text-center text-sm">
+                    Authorize Payment (€{{ amount }})
+                </button>
+                <button type="submit" name="action" value="cancel" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-6 py-3.5 rounded-2xl transition-colors text-center text-sm">
+                    Cancel
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+</body>
+</html>

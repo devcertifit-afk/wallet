@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     
     # Custom apps
     'passes.apps.PassesConfig',
+    'ticketing.apps.TicketingConfig',
 ]
 
 MIDDLEWARE = [
@@ -183,6 +184,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # WALLET CREDENTIALS (APPLE & GOOGLE)
 # ======================================================================
 GCP_PROJECT_ID = env('GCP_PROJECT_ID', default='wallet-devcertifit')
+GCP_LOCATION = env('GCP_LOCATION', default='europe-west3')
+GCP_TASKS_QUEUE_NAME = env('GCP_TASKS_QUEUE_NAME', default='ticketing-fulfillment')
+APP_DOMAIN = env('APP_DOMAIN', default='')
 
 APPLE_TEAM_IDENTIFIER = env('APPLE_TEAM_IDENTIFIER', default='12345ABCDE')
 APPLE_PASS_CERT = env('APPLE_PASS_CERT', default='')
@@ -195,4 +199,13 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL = env('GOOGLE_SERVICE_ACCOUNT_EMAIL', default='')
 # Load and correctly format the JSON key (newlines are escaped in Secret Manager)
 _google_key = env('GOOGLE_SERVICE_ACCOUNT_KEY', default='')
 GOOGLE_SERVICE_ACCOUNT_KEY = _google_key.replace('\\n', '\n') if _google_key else None
+
+# ======================================================================
+# STRIPE CREDENTIALS & VERTICAL FEES
+# ======================================================================
+from decimal import Decimal
+STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY', default='')
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
+TICKETING_FEE_FIXED = Decimal(env('TICKETING_FEE_FIXED', default='0.50'))
+
 

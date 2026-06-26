@@ -171,6 +171,7 @@ class StripeTransaction(models.Model):
     platform_fee = models.DecimalField(_("Platform Fee"), max_digits=10, decimal_places=2)
     status = models.CharField(_("Status"), max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
+    ticket_order = models.ForeignKey('ticketing.TicketOrder', on_delete=models.SET_NULL, null=True, blank=True, related_name='stripe_transactions')
 
     class Meta:
         verbose_name = _("Stripe Transaction")

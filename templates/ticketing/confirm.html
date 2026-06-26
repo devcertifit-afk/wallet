@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - UnisonPass</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .spinner {
+            border-top-color: #6366f1;
+            animation: spinner 0.8s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased overflow-x-hidden min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-100 py-5">
+        <div class="max-w-3xl mx-auto px-6 flex justify-between items-center">
+            <span class="font-display font-bold text-lg text-slate-900">Unison<span class="text-brand-600">Pass</span></span>
+            <a href="{% url 'organizer-profile' company.slug %}" class="text-slate-500 hover:text-slate-800 transition-colors text-xs font-bold uppercase tracking-wider">
+                Browse Events
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-3xl mx-auto px-6 py-12 flex-1 w-full flex flex-col justify-center">
+        <div class="bg-white border border-slate-100 rounded-3xl p-8 md:p-10 shadow-2xl space-y-8">
+            
+            <!-- Header Checkmark / Icon -->
+            <div class="text-center space-y-4">
+                <div class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto shadow-sm">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block">Payment Successful</span>
+                    <h1 class="font-display font-extrabold text-3xl md:text-4xl text-slate-900 mt-2">Thank you for your order!</h1>
+                    <p class="text-slate-500 text-sm mt-1">Order Ref: <span class="font-bold text-slate-700">{{ order.order_ref }}</span></p>
+                </div>
+            </div>
+
+            <!-- Order details summary -->
+            <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Event</span>
+                    <span class="font-bold text-slate-800 block mt-1 truncate">{{ event.name }}</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Ticket Type</span>
+                    <span class="font-bold text-slate-800 block mt-1">{{ order.ticket_type }}</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Attendee</span>
+                    <span class="font-bold text-slate-800 block mt-1 truncate">{{ order.buyer_name }}</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Email</span>
+                    <span class="font-bold text-slate-800 block mt-1 truncate">{{ order.buyer_email }}</span>
+                </div>
+            </div>
+
+            <!-- Polling/Loading State -->
+            <div id="loading-state" class="{% if order.pdf_url and order.pass_instance %}hidden{% endif %} text-center py-6 space-y-4">
+                <div class="w-12 h-12 border-[4px] border-slate-200 border-t-[4px] rounded-full spinner mx-auto"></div>
+                <div>
+                    <h3 class="font-semibold text-slate-800 text-base">Fulfilling your order...</h3>
+                    <p class="text-slate-400 text-xs mt-1">We are generating your branded PDF ticket and wallet passes. This will take just a moment.</p>
+                </div>
+            </div>
+
+            <!-- Success State / Download Panel -->
+            <div id="success-state" class="{% if not order.pdf_url or not order.pass_instance %}hidden{% endif %} space-y-6 pt-4 border-t border-slate-100">
+                <div class="text-center">
+                    <h3 class="font-display font-bold text-xl text-slate-800">Your Tickets are Ready!</h3>
+                    <p class="text-slate-400 text-xs mt-1">Download your files below or add them directly to your mobile wallet.</p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-center items-stretch gap-4">
+                    <!-- PDF Download -->
+                    <a id="download-pdf" href="{% if order.pdf_url %}{{ order.pdf_url }}{% endif %}" target="_blank" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col justify-between items-center text-center space-y-3 transition-colors">
+                        <div class="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-bold text-sm text-slate-800">PDF Ticket</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Print or show on phone</span>
+                        </div>
+                    </a>
+
+                    <!-- Apple Wallet -->
+                    <a id="add-apple" href="{% if order.pass_instance %}{% url 'instance-apple' serial_number=order.pass_instance.serial_number %}{% endif %}" class="flex-1 bg-black hover:bg-slate-950 text-white rounded-2xl p-4 flex flex-col justify-between items-center text-center space-y-3 transition-all duration-200">
+                        <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white">
+                            <!-- Apple Wallet Logo Icon Mock -->
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-bold text-sm">Apple Wallet</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Add to Apple Wallet</span>
+                        </div>
+                    </a>
+
+                    <!-- Google Wallet -->
+                    <a id="add-google" href="{% if order.pass_instance %}{% url 'instance-google' serial_number=order.pass_instance.serial_number %}{% endif %}" class="flex-1 bg-slate-900 hover:bg-slate-950 text-white rounded-2xl p-4 flex flex-col justify-between items-center text-center space-y-3 transition-all duration-200">
+                        <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white">
+                            <!-- Google Wallet Logo Icon Mock -->
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-bold text-sm">Google Wallet</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Save to Google Wallet</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Confirmation page details -->
+            <div class="text-center text-slate-400 text-xs font-semibold pt-4 border-t border-slate-100">
+                A confirmation email with download links has been sent to <span class="text-slate-600 font-bold">{{ order.buyer_email }}</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 py-8">
+        <div class="max-w-3xl mx-auto px-6 text-center text-slate-400 text-xs font-semibold">
+            Powered by UnisonPass Wallet Platform. All Rights Reserved.
+        </div>
+    </footer>
+
+    <!-- Polling Script -->
+    <script>
+        const orderRef = "{{ order.order_ref }}";
+        const pollUrl = "/ticketing/api/v1/orders/" + orderRef + "/status/";
+
+        function checkStatus() {
+            fetch(pollUrl)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update UI: hide loading, show links!
+                        document.getElementById('loading-state').classList.add('hidden');
+                        document.getElementById('success-state').classList.remove('hidden');
+                        
+                        document.getElementById('download-pdf').href = data.pdf_url;
+                        document.getElementById('add-apple').href = data.apple_url;
+                        document.getElementById('add-google').href = data.google_url;
+                    } else {
+                        setTimeout(checkStatus, 1500);
+                    }
+                })
+                .catch(err => {
+                    console.error("Error polling order status:", err);
+                    setTimeout(checkStatus, 3000);
+                });
+        }
+
+        // Start polling if not already fulfilled
+        {% if not order.pdf_url or not order.pass_instance %}
+        checkStatus();
+        {% endif %}
+    </script>
+
+</body>
+</html>

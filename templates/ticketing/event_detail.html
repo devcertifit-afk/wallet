@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ event.name }} Tickets - UnisonPass</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased overflow-x-hidden min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-100 py-5">
+        <div class="max-w-5xl mx-auto px-6 flex justify-between items-center">
+            <a href="{% url 'organizer-profile' company.slug %}" class="flex items-center space-x-2 text-slate-600 hover:text-brand-600 transition-colors font-semibold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Back to {{ company.name }}</span>
+            </a>
+            <span class="font-display font-bold text-lg text-slate-900">Unison<span class="text-brand-600">Pass</span></span>
+        </div>
+    </header>
+
+    <!-- Main Section -->
+    <main class="max-w-5xl mx-auto px-6 py-12 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left: Event Details -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="space-y-4">
+                <span class="inline-flex items-center space-x-1.5 bg-brand-50 text-brand-700 px-3 py-1 rounded-full text-xs font-bold font-display">
+                    📅 {{ event.date|date:"l, F j, Y @ g:i A" }}
+                </span>
+                <h1 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl text-slate-900 tracking-tight leading-tight">
+                    {{ event.name }}
+                </h1>
+            </div>
+
+            <!-- Venue Details Card -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex items-start space-x-4">
+                <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-brand-600 shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-slate-800 text-base">Venue</h3>
+                    <p class="font-medium text-slate-900 text-sm mt-0.5">{{ event.venue.name }}</p>
+                    <p class="text-slate-500 text-xs mt-1 leading-relaxed">{{ event.venue.address }}</p>
+                </div>
+            </div>
+
+            <!-- Description -->
+            {% if event.description %}
+            <div class="space-y-3">
+                <h3 class="font-display font-bold text-xl text-slate-800">About the Event</h3>
+                <div class="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
+                    {{ event.description }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Registration / Checkout Form Card -->
+        <div class="lg:col-span-5 lg:sticky lg:top-8">
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+                <div>
+                    <h3 class="font-display font-bold text-2xl text-slate-900">Buy Tickets</h3>
+                    <p class="text-slate-400 text-xs mt-1">Select ticket type and fill in your details to secure your spot.</p>
+                </div>
+
+                {% if error %}
+                <div class="p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl text-xs font-semibold flex items-center space-x-2">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Form -->
+                <form action="{% url 'initiate-checkout' company.slug event.slug %}" method="POST" class="space-y-4">
+                    {% csrf_token %}
+
+                    <!-- Ticket Type selection -->
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Select Ticket Type</label>
+                        <div class="space-y-2">
+                            {% for tt in event.ticket_types %}
+                            <label class="relative flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:border-brand-500 transition-colors select-none">
+                                <div class="flex items-center space-x-3">
+                                    <input type="radio" name="ticket_type" value="{{ tt.name }}" {% if forloop.first %}checked{% endif %} class="w-4.5 h-4.5 text-brand-600 border-slate-300 focus:ring-brand-500">
+                                    <span class="font-bold text-sm text-slate-800">{{ tt.name }}</span>
+                                </div>
+                                <span class="font-display font-bold text-base text-brand-600">€{{ tt.price }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Buyer Name -->
+                    <div class="space-y-1.5">
+                        <label for="buyer_name" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
+                        <input type="text" id="buyer_name" name="buyer_name" required placeholder="John Doe" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all font-medium text-slate-800">
+                    </div>
+
+                    <!-- Buyer Email -->
+                    <div class="space-y-1.5">
+                        <label for="buyer_email" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
+                        <input type="email" id="buyer_email" name="buyer_email" required placeholder="john.doe@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all font-medium text-slate-800">
+                    </div>
+
+                    <!-- Button -->
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-brand-500/10 transition-all duration-200 hover:-translate-y-0.5 mt-2 text-center">
+                        Proceed to Checkout
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 py-8">
+        <div class="max-w-5xl mx-auto px-6 text-center text-slate-400 text-xs font-semibold">
+            Powered by UnisonPass Wallet Platform. All Rights Reserved.
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,106 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Events Management{% endblock %}
+{% block header_title %}Events{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Action Bar -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="font-display font-extrabold text-2xl text-slate-900">Manage Events</h1>
+            <p class="text-slate-500 text-xs mt-1">Publish venues/events, track attendee registrations, and scan tickets at the door.</p>
+        </div>
+        <a href="{% url 'dashboard-events-new' %}" class="inline-flex items-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-3 rounded-xl shadow-md shadow-brand-500/10 transition-all hover:-translate-y-0.5 duration-200">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Create Event</span>
+        </a>
+    </div>
+
+    <!-- Events Grid / Table -->
+    {% if events %}
+    <div class="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <th class="px-6 py-4">Event Info</th>
+                        <th class="px-6 py-4">Date & Time</th>
+                        <th class="px-6 py-4">Venue</th>
+                        <th class="px-6 py-4 text-center">Tickets Sold</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50 text-sm font-medium text-slate-700">
+                    {% for event in events %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-5">
+                            <div class="font-semibold text-slate-900 font-display text-base">{{ event.name }}</div>
+                            <div class="text-xs text-slate-400 font-normal mt-0.5">/{{ company.slug }}/{{ event.slug }}/</div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="inline-flex items-center space-x-1.5 text-slate-600">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>{{ event.date|date:"M j, Y @ g:i A" }}</span>
+                            </span>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="text-slate-800">{{ event.venue.name }}</div>
+                            <div class="text-[11px] text-slate-400 font-normal truncate max-w-xs mt-0.5">{{ event.venue.address }}</div>
+                        </td>
+                        <td class="px-6 py-5 text-center">
+                            <span class="inline-flex items-center justify-center px-3 py-1 bg-indigo-50 text-brand-700 rounded-full font-bold text-xs">
+                                {{ event.orders.count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <div class="flex items-center justify-end space-x-2">
+                                <a href="{% url 'dashboard-events-scanner' event.slug %}" class="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-2 rounded-xl text-xs font-bold transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0a8 8 0 11-16 0 8 8 0 0116 0z" />
+                                    </svg>
+                                    <span>Door Scanner</span>
+                                </a>
+                                <a href="{% url 'dashboard-events-detail' event.slug %}" class="inline-flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors">
+                                    <span>Manage</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm space-y-6">
+        <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto text-slate-400 border border-slate-100">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        </div>
+        <div>
+            <h3 class="font-display font-bold text-xl text-slate-800">No events found</h3>
+            <p class="text-slate-400 text-xs mt-2 max-w-sm mx-auto">
+                Create your first ticketing event to start listing ticket tiers, setting prices, and accepting Stripe payments.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'dashboard-events-new' %}" class="inline-flex items-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-3 rounded-xl shadow-md transition-all">
+                <span>Create Your First Event</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

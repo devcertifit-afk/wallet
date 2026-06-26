@@ -1,0 +1,172 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Create Event - UnisonPass{% endblock %}
+{% block header_title %}Create Event{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div>
+            <h1 class="font-display font-extrabold text-2xl text-slate-900">Create New Event</h1>
+            <p class="text-slate-500 text-xs mt-1">Configure event metadata, select a venue, and establish ticket pricing tiers.</p>
+        </div>
+        <a href="{% url 'dashboard-events' %}" class="inline-flex items-center space-x-2 text-slate-500 hover:text-slate-800 transition-colors font-bold text-xs uppercase tracking-wider">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Cancel</span>
+        </a>
+    </div>
+
+    <!-- Form -->
+    <form action="" method="POST" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Basic details card -->
+        <div class="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-sm space-y-4">
+            <h3 class="font-display font-bold text-lg text-slate-800">Event Details</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Name -->
+                <div class="space-y-1.5 md:col-span-2">
+                    <label for="name" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Event Name</label>
+                    <input type="text" id="name" name="name" required placeholder="Summer Music Festival 2026" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                </div>
+
+                <!-- Venue Select -->
+                <div class="space-y-1.5">
+                    <label for="venue" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Venue</label>
+                    {% if venues %}
+                    <select id="venue" name="venue" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                        {% for venue in venues %}
+                        <option value="{{ venue.id }}">{{ venue.name }} (Cap: {{ venue.total_capacity }})</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div class="p-3 bg-amber-50 text-amber-800 border border-amber-100 rounded-xl text-xs font-semibold">
+                        No venues registered yet. Please create a Venue in the admin panel first.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Date & Time -->
+                <div class="space-y-1.5">
+                    <label for="date" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date & Time</label>
+                    <input type="datetime-local" id="date" name="date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                </div>
+
+                <!-- Description -->
+                <div class="space-y-1.5 md:col-span-2">
+                    <label for="description" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
+                    <textarea id="description" name="description" rows="4" placeholder="Describe your event..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket Pricing Tiers Card -->
+        <div class="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-display font-bold text-lg text-slate-800">Ticket Tiers</h3>
+                <button type="button" id="add-tier-btn" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-700 uppercase tracking-wider">
+                    <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Add Tier</span>
+                </button>
+            </div>
+
+            <!-- Dynamic Ticket Rows -->
+            <div id="ticket-tiers-container" class="space-y-3">
+                
+                <!-- Initial Tier Row -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border border-slate-100 p-4 rounded-2xl bg-slate-50/50 relative group">
+                    <div class="md:col-span-5 space-y-1">
+                        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Tier Name</label>
+                        <input type="text" name="ticket_type_name[]" required placeholder="General Admission" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    <div class="md:col-span-3 space-y-1">
+                        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Price (EUR)</label>
+                        <input type="number" step="0.01" name="ticket_type_price[]" required placeholder="25.00" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    <div class="md:col-span-3 space-y-1">
+                        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Allocation Qty</label>
+                        <input type="number" name="ticket_type_qty[]" required placeholder="100" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    <div class="md:col-span-1 pt-4 text-center">
+                        <button type="button" class="delete-tier-btn text-rose-500 hover:text-rose-700 opacity-50 group-hover:opacity-100 transition-opacity">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Submit Panel -->
+        <div class="flex space-x-3 pt-2">
+            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3.5 rounded-2xl shadow-lg shadow-brand-500/10 transition-colors text-sm">
+                Publish Event
+            </button>
+            <a href="{% url 'dashboard-events' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-6 py-3.5 rounded-2xl transition-colors text-sm text-center">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('ticket-tiers-container');
+        const addBtn = document.getElementById('add-tier-btn');
+
+        // Dynamic Row Generation
+        addBtn.addEventListener('click', () => {
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 items-center border border-slate-100 p-4 rounded-2xl bg-slate-50/50 relative group';
+            row.innerHTML = `
+                <div class="md:col-span-5 space-y-1">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Tier Name</label>
+                    <input type="text" name="ticket_type_name[]" required placeholder="VIP Pass" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                </div>
+                <div class="md:col-span-3 space-y-1">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Price (EUR)</label>
+                    <input type="number" step="0.01" name="ticket_type_price[]" required placeholder="75.00" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                </div>
+                <div class="md:col-span-3 space-y-1">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Allocation Qty</label>
+                    <input type="number" name="ticket_type_qty[]" required placeholder="50" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors">
+                </div>
+                <div class="md:col-span-1 pt-4 text-center">
+                    <button type="button" class="delete-tier-btn text-rose-500 hover:text-rose-700 opacity-50 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+
+        // Row deletion
+        container.addEventListener('click', (e) => {
+            const btn = e.target.closest('.delete-tier-btn');
+            if (btn) {
+                const rows = container.querySelectorAll('.grid');
+                if (rows.length > 1) {
+                    btn.closest('.grid').remove();
+                } else {
+                    alert('You must have at least one ticket pricing tier.');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

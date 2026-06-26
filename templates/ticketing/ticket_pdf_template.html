@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticket - {{ order.order_ref }}</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            padding: 40px;
+        }
+        .ticket-card {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .ticket-header {
+            background: linear-gradient(135deg, {{ theme_color }}, #312e81);
+            color: #ffffff;
+            padding: 32px;
+            text-align: center;
+        }
+        .ticket-header h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+        .ticket-header p {
+            margin: 0;
+            opacity: 0.85;
+            font-size: 14px;
+        }
+        .ticket-body {
+            padding: 32px;
+        }
+        .ticket-details {
+            width: 100%;
+            margin-bottom: 24px;
+            border-collapse: collapse;
+        }
+        .ticket-details td {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+        .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .value {
+            font-size: 15px;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        .qr-section {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 2px dashed #e2e8f0;
+        }
+        .qr-code {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        .order-ref {
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: 0.05em;
+        }
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 16px;
+        }
+        @media print {
+            body {
+                background-color: #ffffff;
+                padding: 0;
+            }
+            .ticket-card {
+                box-shadow: none;
+                border: 1px solid #cbd5e1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ticket-card">
+        <div class="ticket-header">
+            <h1>{{ event.name }}</h1>
+            <p>Admission Ticket</p>
+        </div>
+        
+        <div class="ticket-body">
+            <table class="ticket-details">
+                <tr>
+                    <td style="width: 50%;">
+                        <span class="label">Attendee</span>
+                        <span class="value">{{ order.buyer_name }}</span>
+                    </td>
+                    <td style="width: 50%;">
+                        <span class="label">Ticket Type</span>
+                        <span class="value">{{ order.ticket_type }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="label">Date & Time</span>
+                        <span class="value">{{ event_date_str }}</span>
+                    </td>
+                    <td>
+                        <span class="label">Venue</span>
+                        <span class="value">
+                            <strong>{{ venue.name }}</strong><br>
+                            <span style="font-size: 13px; color: #64748b;">{{ venue.address }}</span>
+                        </span>
+                    </td>
+                </tr>
+            </table>
+            
+            <div class="qr-section">
+                <img class="qr-code" src="{{ qr_code_url }}" alt="QR Code Ticket">
+                <div>
+                    <span class="label">Order Reference</span>
+                    <span class="order-ref">{{ order.order_ref }}</span>
+                </div>
+            </div>
+            
+            <p class="footer-note">Please present this QR code or add it to your Apple/Google Wallet for scanning at the door.</p>
+        </div>
+    </div>
+
+</body>
+</html>

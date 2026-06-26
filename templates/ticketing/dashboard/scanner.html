@@ -1,0 +1,336 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Door Scanner: {{ event.name }} - UnisonPass{% endblock %}
+{% block header_title %}Door Scanner{% endblock %}
+
+{% block extra_css %}
+<style>
+    #reader {
+        width: 100% !important;
+        border: none !important;
+        border-radius: 24px !important;
+        overflow: hidden !important;
+    }
+    #reader video {
+        border-radius: 24px !important;
+        object-fit: cover !important;
+    }
+    .scan-laser {
+        animation: scan-move 2s linear infinite;
+    }
+    @keyframes scan-move {
+        0%, 100% { top: 0%; }
+        50% { top: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Header Navigation -->
+    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'dashboard-events-detail' event.slug %}" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <div>
+                <h1 class="font-display font-extrabold text-2xl text-slate-900">Door Scanner</h1>
+                <p class="text-slate-500 text-xs mt-0.5">{{ event.name }}</p>
+            </div>
+        </div>
+        <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full uppercase tracking-wider font-display">
+            Active Session
+        </span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left: Camera Viewport -->
+        <div class="md:col-span-7 space-y-4">
+            <div class="bg-white border border-slate-100 rounded-3xl p-4 shadow-sm relative overflow-hidden">
+                
+                <!-- Laser line scanning animation overlay -->
+                <div class="absolute inset-x-4 top-4 bottom-4 z-10 pointer-events-none rounded-2xl overflow-hidden active-scan-line hidden" id="scan-line-overlay">
+                    <div class="absolute left-0 w-full h-0.5 bg-brand-500 shadow-md shadow-brand-500/50 scan-laser"></div>
+                </div>
+
+                <!-- HTML5 Reader Element -->
+                <div id="reader" class="bg-slate-900 min-h-[300px] flex items-center justify-center text-white relative">
+                    <div id="reader-placeholder" class="text-center p-6 space-y-3 z-0">
+                        <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mx-auto">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            </svg>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-400">Camera initialization required</p>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex gap-3 mt-4">
+                    <button id="start-btn" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-lg shadow-brand-500/10">
+                        Start Camera Scan
+                    </button>
+                    <button id="stop-btn" disabled class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-500 disabled:opacity-50 disabled:hover:bg-slate-100 font-bold py-3 rounded-2xl text-xs transition-colors">
+                        Stop Camera
+                    </button>
+                </div>
+            </div>
+
+            <!-- Manual input panel -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-3">
+                <h3 class="font-semibold text-slate-800 text-sm">Manual Check-In</h3>
+                <form id="manual-scan-form" class="flex gap-2">
+                    <input type="text" id="manual-ref-input" placeholder="TKT-ABC12345 or serial number" required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500 transition-colors uppercase">
+                    <button type="submit" class="bg-slate-900 hover:bg-brand-600 text-white font-bold px-5 rounded-xl text-xs transition-colors">
+                        Check In
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right: Status / Last Scan Panel -->
+        <div class="md:col-span-5 space-y-4">
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm min-h-[300px] flex flex-col justify-between">
+                <div>
+                    <h3 class="font-display font-bold text-lg text-slate-800 mb-4 border-b border-slate-50 pb-2">Last Scan Result</h3>
+                    
+                    <!-- Dynamic States -->
+                    <div id="scan-status-container" class="space-y-4">
+                        
+                        <!-- Initial state -->
+                        <div id="status-pending" class="text-center py-12 space-y-3">
+                            <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mx-auto">
+                                <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <p class="text-xs font-semibold text-slate-400">Ready. Align QR code inside camera frame.</p>
+                        </div>
+
+                        <!-- Success state (hidden) -->
+                        <div id="status-success" class="hidden bg-emerald-50 border border-emerald-100 rounded-2xl p-5 text-emerald-800 space-y-3">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="font-bold text-sm">Ticket Valid</span>
+                            </div>
+                            <div class="text-xs font-medium space-y-1">
+                                <div>Name: <span class="font-bold text-slate-800" id="success-buyer-name">...</span></div>
+                                <div>Ticket: <span class="font-bold text-slate-800" id="success-ticket-type">...</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Already Scanned state (hidden) -->
+                        <div id="status-already-scanned" class="hidden bg-amber-50 border border-amber-100 rounded-2xl p-5 text-amber-800 space-y-3">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span class="font-bold text-sm">Already Checked In</span>
+                            </div>
+                            <div class="text-xs font-medium space-y-1">
+                                <div>Name: <span class="font-bold text-slate-800" id="already-buyer-name">...</span></div>
+                                <div>Ticket: <span class="font-bold text-slate-800" id="already-ticket-type">...</span></div>
+                                <div class="pt-2 border-t border-amber-200/50 mt-2 text-amber-700/80">
+                                    Scanned at: <span id="already-scanned-at" class="font-bold">...</span><br>
+                                    Scanned by: <span id="already-scanned-by" class="font-bold">...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invalid/Error state (hidden) -->
+                        <div id="status-error" class="hidden bg-rose-50 border border-rose-100 rounded-2xl p-5 text-rose-800 space-y-2">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="font-bold text-sm">Access Denied</span>
+                            </div>
+                            <p class="text-xs font-semibold text-rose-700/90" id="error-message">Invalid Ticket or code mismatch.</p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider text-center mt-6">
+                    Acoustic feedback enabled
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include HTML5 QR Code CDN -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const overlay = document.getElementById('scan-line-overlay');
+        const manualForm = document.getElementById('manual-scan-form');
+        const manualInput = document.getElementById('manual-ref-input');
+
+        // Audio synthesizer using Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playBeep(freq, type, duration) {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.error("Audio error:", e);
+            }
+        }
+        
+        function playSuccess() { playBeep(880, 'sine', 0.15); }
+        function playError() { playBeep(150, 'sawtooth', 0.35); }
+
+        // Setup html5-qrcode
+        let html5QrcodeScanner = null;
+        const scanApiUrl = "{% url 'dashboard-events-scan-api' event.slug %}";
+
+        function showStatusState(stateId, data = {}) {
+            // Hide all
+            document.getElementById('status-pending').classList.add('hidden');
+            document.getElementById('status-success').classList.add('hidden');
+            document.getElementById('status-already-scanned').classList.add('hidden');
+            document.getElementById('status-error').classList.add('hidden');
+
+            // Show target
+            document.getElementById(stateId).classList.remove('hidden');
+
+            if (stateId === 'status-success') {
+                document.getElementById('success-buyer-name').textContent = data.buyer_name || 'N/A';
+                document.getElementById('success-ticket-type').textContent = data.ticket_type || 'N/A';
+                playSuccess();
+            } else if (stateId === 'status-already-scanned') {
+                document.getElementById('already-buyer-name').textContent = data.buyer_name || 'N/A';
+                document.getElementById('already-ticket-type').textContent = data.ticket_type || 'N/A';
+                document.getElementById('already-scanned-at').textContent = data.scanned_at || 'N/A';
+                document.getElementById('already-scanned-by').textContent = data.scanned_by || 'N/A';
+                playError();
+            } else if (stateId === 'status-error') {
+                document.getElementById('error-message').textContent = data.error || 'Unknown error occurred.';
+                playError();
+            }
+        }
+
+        // Call backend API to validate scan
+        function validateCode(qrCodeString) {
+            // Temporarily pause camera if scanner exists to prevent double scans
+            if (html5QrcodeScanner) {
+                // html5-qrcode does not have a native pause, but we can rate-limit/debounce easily
+            }
+
+            fetch(scanApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ qr_data: qrCodeString })
+            })
+            .then(res => {
+                if (res.status === 403) {
+                    return res.json().then(data => {
+                        showStatusState('status-error', { error: data.error || 'Access Denied. Unauthorized scanner account.' });
+                    });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                if (data.status === 'success') {
+                    showStatusState('status-success', data);
+                } else if (data.status === 'already_scanned') {
+                    showStatusState('status-already-scanned', data);
+                } else if (data.error) {
+                    showStatusState('status-error', { error: data.error });
+                }
+            })
+            .catch(err => {
+                console.error("Scanning request failed:", err);
+                showStatusState('status-error', { error: "Network connection error." });
+            });
+        }
+
+        // Manual submit handler
+        manualForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = manualInput.value.trim();
+            if (val) {
+                validateCode(val);
+                manualInput.value = '';
+            }
+        });
+
+        // Initialize Camera Scan
+        startBtn.addEventListener('click', () => {
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            
+            // Start scanning
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, // Rear camera
+                {
+                    fps: 10,
+                    qrbox: (width, height) => {
+                        const min = Math.min(width, height);
+                        return { width: min * 0.7, height: min * 0.7 };
+                    }
+                },
+                (decodedText) => {
+                    // Success callback
+                    validateCode(decodedText);
+                },
+                (errorMessage) => {
+                    // Verbose logger (ignore)
+                }
+            )
+            .then(() => {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                overlay.classList.remove('hidden');
+                document.getElementById('reader-placeholder').classList.add('hidden');
+            })
+            .catch(err => {
+                console.error("Camera start failure:", err);
+                alert("Could not start camera: " + err);
+            });
+        });
+
+        // Stop Camera Scan
+        stopBtn.addEventListener('click', () => {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner = null;
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    overlay.classList.add('hidden');
+                    document.getElementById('reader-placeholder').classList.remove('hidden');
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}
