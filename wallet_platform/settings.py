@@ -208,4 +208,16 @@ STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY', default='')
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
 TICKETING_FEE_FIXED = Decimal(env('TICKETING_FEE_FIXED', default='0.50'))
 
+# Security settings for HTTPS proxy (Cloud Run)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://wallet-app-ioidrsi2kq-lz.a.run.app',
+    'https://wallet-app-192038178935.europe-north1.run.app',
+]
+if APP_DOMAIN:
+    domain_clean = APP_DOMAIN.replace('https://', '').replace('http://', '')
+    CSRF_TRUSTED_ORIGINS.append(f'https://{domain_clean}')
+
+
 

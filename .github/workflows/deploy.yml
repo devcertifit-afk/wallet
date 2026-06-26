@@ -27,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-level: '3.11'
+          python-version: '3.11'
           cache: 'pip'
 
       - name: Install Linting & Testing Dependencies

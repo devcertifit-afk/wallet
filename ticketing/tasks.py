@@ -59,7 +59,7 @@ def trigger_order_fulfillment_async(order):
             client = tasks_v2.CloudTasksClient()
             parent = client.queue_path(project, location, queue)
             
-            url = f"https://{domain}/ticketing/api/v1/tasks/fulfill/"
+            url = f"https://{domain}/api/v1/tasks/fulfill/"
             payload = {'order_id': order.id}
             
             task = {
